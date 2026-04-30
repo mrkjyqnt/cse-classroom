@@ -9,7 +9,6 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "http://localhost:3000", // Optional for OpenRouter
       },
       body: JSON.stringify({
         model: "openai/gpt-oss-20b:free",
@@ -21,8 +20,20 @@ export async function POST(req: Request) {
     });
 
     const data = await response.json();
+    
+    // Log the error specifically so you can see it in the Vercel logs
+    if (data.error) {
+      console.error("OpenRouter API Error:", data.error);
+      return NextResponse.json({ error: data.error.message }, { status: 500 });
+    }
+
     return NextResponse.json(data);
   } catch (error) {
+    console.error("Fetch Error:", error);
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ message: "API is awake! Use POST to chat." });
 }

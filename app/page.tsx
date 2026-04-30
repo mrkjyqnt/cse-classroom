@@ -63,7 +63,12 @@ function VisitCounter() {
 /* ── Main Home Page ── */
 export default function Home() {
   const [session, setSession] = useState<UserProgress | null>(null);
-  useEffect(() => { setSession(getSession()); }, []);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { 
+    setSession(getSession()); 
+    setMounted(true);
+  }, []);
 
   const totalLessons = topics.reduce((s, t) => s + t.lessons.length, 0);
   const lessonsRead  = session ? Object.values(session.lessonsRead).reduce((s, a) => s + a.length, 0) : 0;
@@ -75,7 +80,6 @@ export default function Home() {
     <div style={{ background: C.bg, minHeight: "100dvh", fontFamily: sans }}>
       <Navbar />
 
-      {/* Locked toast — Suspense required because useSearchParams needs it during SSR */}
       <Suspense fallback={null}>
         <LockedToast />
       </Suspense>
@@ -123,7 +127,7 @@ export default function Home() {
       </div>
 
       {/* PROGRESS */}
-      {session && (lessonsRead > 0 || quizzesDone > 0) && (
+      {mounted && session && (lessonsRead > 0 || quizzesDone > 0) && (
         <div style={{ ...pageWrap, paddingTop: 16 }}>
           <div style={{ background: C.white, border: `1px solid ${C.borderLt}`, borderRadius: 12, padding: "16px 20px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -158,8 +162,8 @@ export default function Home() {
             const qr      = session?.quizResults[topic.id];
             const read    = session?.lessonsRead[topic.id]?.length || 0;
             const done    = !!qr;
-            // Use the shared isTopicUnlocked so home page and lesson page agree
-            const unlocked = isTopicUnlocked(topic.id);
+            const isFirst = i === 0;
+            const unlocked = mounted ? isTopicUnlocked(topic.id) : isFirst;
             const readPct = Math.round((read / topic.lessons.length) * 100);
 
             return (
@@ -184,24 +188,29 @@ export default function Home() {
                     onMouseEnter={e => { if (unlocked) (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.07)"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}>
 
-                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: done ? C.successBg : unlocked ? C.accentSoft : C.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-                      {done ? "✓" : unlocked ? topic.icon : "🔒"}
+                    <div style={{ 
+                      width: 40, height: 40, borderRadius: "50%", 
+                      background: done ? C.successBg : unlocked ? C.accentSoft : C.surface, 
+                      display: "flex", alignItems: "center", justifyContent: "center", 
+                      fontSize: 18, flexShrink: 0 
+                    }}>
+                      {!mounted && !isFirst ? "🔒" : (done ? "✓" : unlocked ? topic.icon : "🔒")}
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
                         <p style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{topic.title}</p>
-                        {done && (
+                        {mounted && done && (
                           <span style={{ fontSize: 11, fontWeight: 700, color: C.success, background: C.successBg, border: `1px solid ${C.successBr}`, padding: "1px 7px", borderRadius: 999 }}>
                             ✓ {qr!.pct}%
                           </span>
                         )}
-                        {!unlocked && (
+                        {mounted && !unlocked && (
                           <span style={{ fontSize: 11, color: C.ink3 }}>Complete {topics[i - 1]?.title} quiz first</span>
                         )}
                       </div>
                       <p style={{ fontSize: 12, color: C.ink3, lineHeight: 1.45 }}>{topic.description}</p>
-                      {read > 0 && !done && (
+                      {mounted && read > 0 && !done && (
                         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ flex: 1, height: 3, background: C.borderLt, borderRadius: 999, overflow: "hidden" }}>
                             <div style={{ height: "100%", width: `${readPct}%`, background: C.accent, borderRadius: 999 }} />
@@ -231,10 +240,10 @@ export default function Home() {
             <p style={{ fontSize: 13, color: C.ink3, lineHeight: 1.6 }}>80 questions · 90-minute timer · All subjects · Pass with 70% to earn your certificate.</p>
           </div>
           <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-            {examPassed && <Link href="/certificate" style={{ textDecoration: "none" }}><button style={{ height: 44, padding: "0 20px", background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>Certificate</button></Link>}
+            {mounted && examPassed && <Link href="/certificate" style={{ textDecoration: "none" }}><button style={{ height: 44, padding: "0 20px", background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>Certificate</button></Link>}
             <Link href="/exam" style={{ textDecoration: "none" }}>
               <button style={{ height: 44, padding: "0 24px", background: C.accent, color: "white", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: sans }}>
-                {examPassed ? "Retake exam" : "Start exam →"}
+                {mounted && examPassed ? "Retake exam" : "Start exam →"}
               </button>
             </Link>
           </div>
