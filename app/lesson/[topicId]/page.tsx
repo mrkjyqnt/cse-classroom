@@ -48,20 +48,29 @@ function Section({ s }: { s: LessonSection }) {
   );
 
   if (s.type === "table" && s.rows) return (
-    <div style={{ marginBottom: 24, overflowX: "auto", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
+    <div style={{ marginBottom: 24 }}>
       {s.title && <p style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 10 }}>📊 {s.title}</p>}
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 400 }}>
-        <thead>
-          <tr>{s.headers?.map(h => <th key={h} style={{ background: C.ink, color: "#fff", padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {s.rows.map((row, i) => (
-            <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.surface }}>
-              {row.map((cell, j) => <td key={j} style={{ padding: "9px 12px", borderBottom: `1px solid ${C.borderLt}`, color: C.ink2 }} dangerouslySetInnerHTML={{ __html: mdInline(cell) }} />)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Scroll container fix */}
+      <div style={{ 
+        width: "100%", 
+        overflowX: "auto", 
+        WebkitOverflowScrolling: "touch", 
+        border: `1px solid ${C.borderLt}`, 
+        borderRadius: 10 
+      }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 400 }}>
+          <thead>
+            <tr>{s.headers?.map(h => <th key={h} style={{ background: C.ink, color: "#fff", padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {s.rows.map((row, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.surface }}>
+                {row.map((cell, j) => <td key={j} style={{ padding: "9px 12px", borderBottom: `1px solid ${C.borderLt}`, color: C.ink2 }} dangerouslySetInnerHTML={{ __html: mdInline(cell) }} />)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -90,14 +99,6 @@ function Section({ s }: { s: LessonSection }) {
           <button onClick={() => { setActiveCard(a => Math.min(s.cards!.length - 1, a + 1)); setFlipped(false); }} disabled={activeCard === s.cards.length - 1}
             style={{ width: 30, height: 30, borderRadius: 6, border: `1px solid ${C.border}`, background: C.white, cursor: activeCard === s.cards.length - 1 ? "default" : "pointer", opacity: activeCard === s.cards.length - 1 ? 0.4 : 1, fontSize: 15, fontFamily: sans }}>›</button>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 10 }}>
-          {s.cards.map((_, i) => (
-            <button key={i} onClick={() => { setActiveCard(i); setFlipped(false); }}
-              style={{ height: 24, padding: "0 9px", borderRadius: 5, border: `1px solid ${i === activeCard ? C.accent : C.border}`, background: i === activeCard ? C.accent : C.white, color: i === activeCard ? "#fff" : C.ink3, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
-              {i + 1}
-            </button>
-          ))}
-        </div>
       </div>
     );
   }
@@ -109,7 +110,6 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
   const { topicId } = use(params);
   const router = useRouter();
 
-  // ── ALL hooks must be declared here, unconditionally, before any return ──
   const [active, setActive]     = useState(0);
   const [readSet, setReadSet]   = useState<Set<number>>(new Set());
   const [mobileNav, setMobileNav] = useState(false);
@@ -117,7 +117,6 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
 
   const topic = topics.find(t => t.id === topicId) ?? null;
 
-  // Check unlock & load progress — runs whenever topicId changes
   useEffect(() => {
     if (!topic) return;
     const ok = isTopicUnlocked(topicId);
@@ -128,9 +127,8 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
     }
     setActive(0);
     setReadSet(new Set(getSession().lessonsRead[topicId] || []));
-  }, [topicId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [topicId]);
 
-  // Mark lesson as read whenever active changes (and topic is unlocked)
   useEffect(() => {
     if (!topic || !unlocked) return;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -138,14 +136,13 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
       markLessonRead(topicId, active);
       setReadSet(prev => new Set([...prev, active]));
     }
-  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active]);
 
   const activate = useCallback((i: number) => {
     setActive(i);
     setMobileNav(false);
   }, []);
 
-  // ── Early returns AFTER all hooks ──
   if (!topic) return (
     <div style={{ background: C.bg, minHeight: "100dvh" }}><Navbar />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "48px 20px", textAlign: "center" }}>
@@ -157,7 +154,6 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
     </div>
   );
 
-  // Show lock screen while checking or if locked (prevents flash of content)
   if (unlocked === null || unlocked === false) return (
     <div style={{ background: C.bg, minHeight: "100dvh" }}><Navbar />
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
@@ -179,10 +175,9 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
   ).join(" ");
 
   return (
-    <div style={{ background: C.bg, minHeight: "100dvh", fontFamily: sans }}>
+    <div style={{ background: C.bg, minHeight: "100dvh", fontFamily: sans, overflowX: "hidden" }}>
       <Navbar />
 
-      {/* Breadcrumb */}
       <div style={{ background: C.white, borderBottom: `1px solid ${C.borderLt}`, padding: "8px 20px" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.ink3 }}>
           <Link href="/" style={{ color: C.ink2, textDecoration: "none" }}>Home</Link>
@@ -191,7 +186,6 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
         </div>
       </div>
 
-      {/* Mobile lesson picker */}
       <div className="mobile-picker" style={{ padding: "10px 16px", background: C.white, borderBottom: `1px solid ${C.borderLt}`, display: "none" }}>
         <button onClick={() => setMobileNav(o => !o)}
           style={{ width: "100%", padding: "10px 14px", border: `1.5px solid ${C.border}`, borderRadius: 9, background: C.white, fontSize: 13, fontWeight: 500, color: C.ink, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: sans }}>
@@ -213,7 +207,6 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
       </div>
 
       <div className="lesson-grid" style={{ maxWidth: 960, margin: "0 auto", padding: "20px", display: "grid", gridTemplateColumns: "210px 1fr", gap: 20 }}>
-        {/* Sidebar */}
         <aside className="lesson-sidebar">
           <div style={{ position: "sticky", top: 72 }}>
             <div style={{ background: C.white, border: `1px solid ${C.borderLt}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
@@ -236,17 +229,15 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
               </nav>
             </div>
             <Link href={`/quiz/${topicId}`} style={{ textDecoration: "none", display: "block" }}>
-              <button style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1.5px solid ${allRead ? C.accent : C.border}`, background: allRead ? C.accent : C.surface, color: allRead ? "white" : C.ink2, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans, transition: "all 0.15s" }}>
+              <button style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1.5px solid ${allRead ? C.accent : C.border}`, background: allRead ? C.accent : C.surface, color: allRead ? "white" : C.ink2, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
                 {allRead ? "Take quiz →" : `Quiz (${readSet.size}/${topic.lessons.length} read)`}
               </button>
             </Link>
           </div>
         </aside>
 
-        {/* Main content */}
-        <main>
+        <main style={{ overflow: "hidden" }}>
           <div style={{ background: C.white, border: `1px solid ${C.borderLt}`, borderRadius: 14, overflow: "hidden" }}>
-            {/* Header */}
             <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.borderLt}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <div>
                 <p style={{ ...eyebrow, marginBottom: 5 }}>Lesson {active + 1} of {topic.lessons.length} · {lesson.duration}</p>
@@ -257,12 +248,10 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
               )}
             </div>
 
-            {/* Content */}
             <div style={{ padding: "22px" }}>
               {lesson.sections.map((section, i) => <Section key={i} s={section} />)}
             </div>
 
-            {/* Footer nav */}
             <div style={{ padding: "14px 22px", borderTop: `1px solid ${C.borderLt}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               <button disabled={active === 0} onClick={() => activate(active - 1)}
                 style={{ height: 34, padding: "0 14px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.white, color: C.ink, fontSize: 13, fontWeight: 500, cursor: active === 0 ? "not-allowed" : "pointer", opacity: active === 0 ? 0.4 : 1, fontFamily: sans }}>
@@ -276,7 +265,6 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
             </div>
           </div>
 
-          {/* Mobile quiz button */}
           <div className="mobile-quiz-btn" style={{ marginTop: 12, display: "none" }}>
             <Link href={`/quiz/${topicId}`} style={{ textDecoration: "none", display: "block" }}>
               <button style={{ width: "100%", padding: "13px", background: allRead ? C.accent : C.surface, color: allRead ? "white" : C.ink2, border: `1.5px solid ${allRead ? C.accent : C.border}`, borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans }}>
@@ -290,11 +278,25 @@ export default function LessonPage({ params }: { params: Promise<{ topicId: stri
       <AiTutor topicId={topicId} lessonTitle={lesson.title} lessonContent={lessonContent} />
 
       <style>{`
+        /* Safety: Prevent horizontal scrolling on the root level */
+        html, body {
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
         @media (max-width: 700px) {
-          .lesson-grid { grid-template-columns: 1fr !important; }
+          .lesson-grid { 
+            grid-template-columns: 1fr !important; 
+            padding: 12px !important; 
+          }
           .lesson-sidebar { display: none !important; }
           .mobile-picker { display: block !important; }
           .mobile-quiz-btn { display: block !important; }
+          
+          /* Prevent main content from pushing beyond screen width */
+          main {
+            width: 100%;
+            overflow-x: hidden;
+          }
         }
       `}</style>
     </div>
