@@ -25,6 +25,7 @@ All lessons and questions are sourced directly from the official CSE reviewer do
 - 📊 **Performance Breakdown** — Per-subject scoring after the exam
 - 🎓 **Certificate of Achievement** — Printable and shareable certificate for users who pass with 70%+
 - 📘 **Share on Facebook** — Share your certificate directly to Facebook or copy the link
+- 🤖 **AI Tutor** — Chat assistant that explains any lesson, answers questions in English or Filipino (Tagalog), with anti-cheat quiz guidance
 - 💾 **Session Persistence** — Progress saved via localStorage and browser cookies — resume anytime
 - 📱 **Mobile-First Design** — Fully responsive, works on phone, tablet, and desktop
 
@@ -67,11 +68,28 @@ cd cse-classroom
 # 3. Install dependencies
 npm install
 
-# 4. Start the development server
+# 4. Create the environment file and add your OpenRouter API key
+cp .env.example .env.local
+# then edit .env.local and set OPENROUTER_API_KEY=sk-or-v1-...
+
+# 5. Start the development server
 npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Getting an OpenRouter API Key
+
+The AI Tutor runs through [OpenRouter](https://openrouter.ai), which gives you access to many AI models — including free ones — through a single API key.
+
+1. Create a free account at [openrouter.ai](https://openrouter.ai)
+2. Go to [API Keys](https://openrouter.ai/settings/keys) and click **Create Key**
+3. Copy the key (starts with `sk-or-v1-`) into your `.env.local`
+4. Restart the dev server after adding the key
+
+The app uses the `openai/gpt-oss-20b:free` model by default — you can change it in `app/api/chat/route.ts`.
+
+> ⚠️ **Vercel deployment note:** add `OPENROUTER_API_KEY` under **Project → Settings → Environment Variables** before deploying, or the AI Tutor will show "Connection error."
 
 ---
 
@@ -126,8 +144,11 @@ cse-classroom/
 │   ├── lesson/[topicId]/     # Interactive lesson pages
 │   ├── quiz/[topicId]/       # Topic quiz pages
 │   ├── exam/                 # Full-length practice exam
-│   └── certificate/          # Certificate of Achievement
+│   ├── certificate/          # Certificate of Achievement
+│   └── api/
+│       └── chat/route.ts     # AI Tutor backend (OpenRouter proxy)
 ├── components/
+│   ├── AiTutor.tsx           # Floating AI tutor chat widget
 │   ├── Navbar.tsx            # Navigation bar
 │   └── ui/                   # Reusable UI components (Button, Badge, Progress)
 ├── lib/
@@ -147,6 +168,20 @@ cse-classroom/
 4. **Sit the final exam** — An 80-item, 90-minute timed practice exam covering all subjects
 5. **Earn your certificate** — Score 70% or higher to receive a Certificate of Achievement you can print or share
 
+### 🤖 Using the AI Tutor
+
+The AI Tutor is a floating chat bubble (🤖) in the bottom-right corner of every lesson page:
+
+1. **Open the tutor** — Click the floating 🤖 button. A peek bubble also appears automatically after a few seconds
+2. **Pick a language** — Choose **English** or **Filipino** (the tutor answers in Tagalog with English technical terms when needed)
+3. **Ask anything** — Type your question or tap a suggested prompt. The tutor knows the lesson you're currently on and explains concepts in 2–5 sentence answers
+4. **Suggestions** — Quick question chips appear at the start of a conversation to get you going
+
+Notes:
+- The tutor is **disabled during quizzes** (the button shows a lock 🔒) to keep the exam honest
+- If you ask for a quiz answer, the tutor creates a **similar example with different numbers** instead of giving it away
+- You can switch languages any time — the tutor remembers your conversation
+
 ---
 
 ## 🛠️ Tech Stack
@@ -156,6 +191,7 @@ cse-classroom/
 | [Next.js 16](https://nextjs.org) | React framework with App Router |
 | [TypeScript 5](https://www.typescriptlang.org) | Type safety |
 | Pure CSS + Inline Styles | Styling (no Tailwind dependency) |
+| [OpenRouter API](https://openrouter.ai) | Powers the AI Tutor (free model: `openai/gpt-oss-20b:free`) |
 | localStorage + Cookies | Session persistence |
 | Native Browser APIs | Flashcard animations, timer, sharing |
 
@@ -163,7 +199,19 @@ cse-classroom/
 
 ## ⚙️ Environment
 
-No environment variables are required. The app runs entirely client-side with no external API calls or database connections.
+One environment variable is required for the AI Tutor:
+
+| Variable | Required | Description |
+|---|---|---|
+| `OPENROUTER_API_KEY` | Yes (for AI Tutor) | Your API key from [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys) |
+
+Create a `.env.local` file in the project root with:
+
+```bash
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxx
+```
+
+The rest of the app (lessons, quizzes, exam, certificate) works entirely client-side without any external services — the API key is only needed for the chat tutor. On Vercel, set the same variable under **Project → Settings → Environment Variables**.
 
 ---
 
